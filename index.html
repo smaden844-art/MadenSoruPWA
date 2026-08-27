@@ -51,6 +51,78 @@ body.light{--bg:#edf3fb;--panel:#fff;--panel2:#fff;--line:#d7e2f0;--text:#12213a
     width:100%!important;
   }
 }
+
+/* Premium açılış ekranı */
+.splash{
+  position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(circle at 50% 28%,rgba(33,126,255,.26),transparent 34%),
+    radial-gradient(circle at 20% 80%,rgba(33,82,190,.18),transparent 32%),
+    linear-gradient(145deg,#030b18,#071a32 48%,#04101f);
+  transition:opacity .7s ease,visibility .7s ease;
+}
+.splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+.splash-card{text-align:center;width:min(560px,88vw);padding:48px 34px}
+.splash-logo{
+  width:92px;height:92px;margin:0 auto 23px;border-radius:26px;display:grid;place-items:center;
+  font-size:44px;background:linear-gradient(145deg,#1476ff,#0b3f9b);
+  border:1px solid rgba(116,178,255,.5);box-shadow:0 25px 70px rgba(10,90,220,.35);
+  animation:splashFloat 2.2s ease-in-out infinite;
+}
+.splash-title{font-size:clamp(27px,5vw,42px);font-weight:850;letter-spacing:.6px}
+.splash-title b{color:#3d95ff}
+.splash-sub{margin-top:9px;color:#9fb0c8;font-size:14px;letter-spacing:2.2px;text-transform:uppercase}
+.splash-line{height:4px;margin:31px auto 0;max-width:330px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}
+.splash-line span{display:block;height:100%;width:0;background:linear-gradient(90deg,#1476ff,#62aaff);border-radius:999px;animation:splashProgress 6s linear forwards}
+.splash-loading{margin-top:12px;color:#8397b5;font-size:12px}
+@keyframes splashProgress{to{width:100%}}
+@keyframes splashFloat{50%{transform:translateY(-7px);box-shadow:0 34px 80px rgba(10,90,220,.43)}}
+
+/* Drive şifre penceresi */
+.modal-backdrop{
+  position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;
+  padding:20px;background:rgba(1,7,16,.76);backdrop-filter:blur(11px);
+}
+.modal-backdrop.show{display:flex}
+.password-card{
+  width:min(430px,94vw);padding:30px;border-radius:20px;
+  background:linear-gradient(145deg,#0d2444,#07182e);border:1px solid #22568f;
+  box-shadow:0 30px 90px rgba(0,0,0,.48);
+}
+.password-icon{width:58px;height:58px;display:grid;place-items:center;border-radius:16px;font-size:28px;margin-bottom:18px;background:#0f4b9d}
+.password-card h2{margin:0 0 8px;font-size:24px}
+.password-card p{margin:0 0 18px;color:var(--muted)}
+.password-input{
+  width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--line);
+  background:#061326;color:white;outline:none;
+}
+.password-input:focus{border-color:#2c86ff;box-shadow:0 0 0 3px rgba(44,134,255,.13)}
+.password-actions{display:flex;gap:10px;margin-top:14px}
+.password-actions button{flex:1}
+.password-error{display:none;color:#ff9ca8;font-size:13px;margin-top:10px}
+.password-error.show{display:block}
+
+/* PDF yükleme küçük bildirimi */
+.upload-notice{
+  position:fixed;left:50%;top:28px;transform:translate(-50%,-18px);z-index:8500;
+  display:flex;align-items:center;gap:12px;min-width:270px;max-width:90vw;
+  padding:13px 16px;border-radius:13px;border:1px solid #2b72c8;
+  background:rgba(8,31,59,.96);box-shadow:0 18px 55px rgba(0,0,0,.35);
+  opacity:0;visibility:hidden;transition:.25s ease;
+}
+.upload-notice.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
+.upload-spinner{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top-color:#65aaff;animation:spin .8s linear infinite;flex:0 0 auto}
+.upload-notice b{display:block;font-size:14px}
+.upload-notice small{display:block;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.quick{grid-template-columns:repeat(3,1fr)}
+.stats{grid-template-columns:repeat(3,1fr)}
+@media(max-width:760px){
+  .password-actions{flex-direction:column}
+  .upload-notice{top:16px}
+}
+
 </style>
 
 <link rel="manifest" href="manifest.json">
@@ -60,6 +132,36 @@ body.light{--bg:#edf3fb;--panel:#fff;--panel2:#fff;--line:#d7e2f0;--text:#12213a
 
 </head>
 <body>
+
+<div class="splash" id="splashScreen" aria-hidden="true">
+  <div class="splash-card">
+    <div class="splash-logo">☁️</div>
+    <div class="splash-title">MADEN.<b>SORU</b>.ARŞİVİ</div>
+    <div class="splash-sub">Dijital Soru Arşivi</div>
+    <div class="splash-line"><span></span></div>
+    <div class="splash-loading">Sistem hazırlanıyor...</div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="passwordModal">
+  <div class="password-card">
+    <div class="password-icon">🔐</div>
+    <h2>Drive Erişimi</h2>
+    <p>Drive'daki dosyaları görüntülemek için şifreyi girin.</p>
+    <input class="password-input" id="drivePasswordInput" type="password" placeholder="Şifre" autocomplete="off">
+    <div class="password-error" id="passwordError">Şifre hatalı. Tekrar deneyin.</div>
+    <div class="password-actions">
+      <button class="ghost" id="passwordCancel">Vazgeç</button>
+      <button class="primary" id="passwordSubmit">Giriş Yap</button>
+    </div>
+  </div>
+</div>
+
+<div class="upload-notice" id="uploadNotice">
+  <div class="upload-spinner"></div>
+  <div><b>PDF yükleniyor...</b><small id="uploadFileName">Lütfen bekleyin</small></div>
+</div>
+
 <div class="app">
 <aside class="sidebar">
   <div class="brand"><div class="brand-icon">☁️</div><div><strong>MADEN.<b>SORU</b>.ARŞİVİ</strong><small>Daha modern, daha sade</small></div></div>
@@ -67,7 +169,6 @@ body.light{--bg:#edf3fb;--panel:#fff;--panel2:#fff;--line:#d7e2f0;--text:#12213a
     <button class="active" data-page="home">⌂ &nbsp; Ana Sayfa</button>
     <button data-page="classes">🎓 &nbsp; Sınıf / Ders Seç</button>
     <button data-page="drive">📁 &nbsp; Drive'daki Dosyalar</button>
-    <button data-page="history">◷ &nbsp; Yükleme Geçmişi</button>
     <button data-page="settings">⚙ &nbsp; Ayarlar</button>
     <button data-page="about">ⓘ &nbsp; Hakkında</button>
   </nav>
@@ -80,19 +181,17 @@ body.light{--bg:#edf3fb;--panel:#fff;--panel2:#fff;--line:#d7e2f0;--text:#12213a
     <div class="hero"><h1>Hoş geldiniz!</h1><p>Sorularınızı arşivleyin, kolayca erişin.</p></div>
     <div class="feature-grid">
       <div class="feature"><h2>PDF Yükle</h2><p>Yeni soru PDF'inizi sınıf ve ders seçerek Drive'a yükleyin.</p><button class="primary" onclick="showPage('classes')">⬆ PDF Seç ve Yükle</button><div class="big">📤</div></div>
-      <div class="feature"><h2>Drive'daki Dosyalar</h2><p>Google Drive'daki soru arşivinize göz atın ve indirin.</p><button class="primary" onclick="showPage('drive')">Dosyaları Görüntüle →</button><div class="big">📁</div></div>
+      <div class="feature"><h2>Drive'daki Dosyalar</h2><p>Google Drive'daki soru arşivinize göz atın ve indirin.</p><button class="primary" onclick="requestDrivePage()">Dosyaları Görüntüle →</button><div class="big">📁</div></div>
     </div>
     <h2 class="section-title">Hızlı İşlemler</h2>
-    <div class="quick"><div class="quick-card" onclick="showPage('classes')"><b>🎓 Sınıf Seç</b><span>Sınıf seviyesini seçin</span></div><div class="quick-card" onclick="showPage('classes')"><b>📚 Ders Seç</b><span>Ders kategorisini seçin</span></div><div class="quick-card" onclick="showPage('drive')"><b>📂 Dosyaları Gör</b><span>Drive'daki dosyaları listele</span></div><div class="quick-card" onclick="showPage('history')"><b>◷ Son Yüklemeler</b><span>Bu oturumdaki işlemler</span></div></div>
-    <div class="stats"><div class="stat"><small>Seçili Sınıf</small><strong id="statClass">—</strong></div><div class="stat"><small>Seçili Ders</small><strong id="statLesson">—</strong></div><div class="stat"><small>Son İşlem</small><strong id="statAction">Hazır</strong></div><div class="stat"><small>Drive Bağlantısı</small><strong class="ok">Bağlı</strong></div></div>
-    <div class="panel"><div class="panel-head"><h2>Son İşlemler</h2><button class="ghost" onclick="showPage('history')">Tümünü Gör</button></div><div id="recentHome" class="empty">Henüz bu oturumda işlem yapılmadı.</div></div>
+    <div class="quick"><div class="quick-card" onclick="showPage('classes')"><b>🎓 Sınıf Seç</b><span>Sınıf seviyesini seçin</span></div><div class="quick-card" onclick="showPage('classes')"><b>📚 Ders Seç</b><span>Ders kategorisini seçin</span></div><div class="quick-card" onclick="requestDrivePage()"><b>🔐 Drive Dosyaları</b><span>Şifre ile arşivi görüntüle</span></div></div>
+    <div class="stats"><div class="stat"><small>Seçili Sınıf</small><strong id="statClass">—</strong></div><div class="stat"><small>Seçili Ders</small><strong id="statLesson">—</strong></div><div class="stat"><small>Drive Bağlantısı</small><strong class="ok">Bağlı</strong></div></div>
   </section>
 
   <section class="page" id="page-classes"><div class="hero"><h1>PDF Yükle</h1><p>Önce sınıfı, ardından dersi seçin.</p></div><div class="panel"><h2>1. Sınıf Seç</h2><div class="choice-grid" id="classChoices"></div></div><div class="panel" id="lessonPanel" style="display:none"><h2>2. Ders Seç ve PDF Yükle</h2><div class="lesson-grid" id="lessonChoices"></div></div></section>
 
   <section class="page" id="page-drive"><div class="hero"><h1>Drive'daki Dosyalar</h1><p>Sınıf ve ders seçerek Google Drive arşivini görüntüleyin.</p></div><div class="panel"><div class="controls"><select id="driveClass"><option value="">Sınıf seçin</option></select><select id="driveLesson"><option value="">Ders seçin</option></select><button class="primary" onclick="loadDrivePage()">Dosyaları Listele</button><input id="searchBox" placeholder="Dosya ara..." oninput="filterDriveFiles()"></div><div id="driveFiles" class="empty">Listelemek için sınıf ve ders seçin.</div></div></section>
 
-  <section class="page" id="page-history"><div class="hero"><h1>Yükleme Geçmişi</h1><p>Uygulama açıkken yaptığınız son işlemler.</p></div><div class="panel" id="historyList"><div class="empty">Henüz işlem yok.</div></div></section>
   <section class="page" id="page-settings"><div class="hero"><h1>Ayarlar</h1><p>Görünümü kişiselleştirin.</p></div><div class="panel"><h2>Görünüm</h2><p class="muted">Koyu ve açık tema arasında geçiş yapabilirsiniz.</p><button class="primary" onclick="toggleTheme()">Temayı Değiştir</button></div></section>
   <section class="page" id="page-about"><div class="hero"><h1>Hakkında</h1><p>MADEN.SORU.ARŞİVİ</p></div><div class="panel"><h2>Sürüm 1.0.0</h2><p class="muted">PDF soru arşivlerini sınıf ve ders bazında Google Drive üzerinde düzenlemek, listelemek ve indirmek için hazırlanmıştır.</p></div></section>
 </main>
@@ -102,36 +201,92 @@ body.light{--bg:#edf3fb;--panel:#fff;--panel2:#fff;--line:#d7e2f0;--text:#12213a
 const classes=['9_Sinif','10_Sinif','11_Sinif','12_Sinif'];
 const lessons=['Matematik','Fizik','Kimya','Biyoloji','Edebiyat','Paragraf','Tarih','Cografya','Geometri'];
 const lessonLabel=x=>x==='Cografya'?'Coğrafya':x;
-let currentClass='', currentLesson='', driveCache=[], history=[];
+let currentClass='', currentLesson='', driveCache=[];
+const DRIVE_PASSWORD='Maden2026!';
+let driveUnlocked=false, pendingDriveAction=null;
 function showStatus(text,err=false){const e=document.getElementById('status');e.textContent=text;e.className='status show'+(err?' err':'');clearTimeout(showStatus.t);showStatus.t=setTimeout(()=>e.className='status',4200)}
-function showPage(name){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('page-'+name).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===name));}
-document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+function showPage(name){
+  if(name==='drive'){requestDrivePage();return;}
+  showPageUnlocked(name);
+}
+function showPageUnlocked(name){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  const page=document.getElementById('page-'+name); if(page)page.classList.add('active');
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===name));
+}
+function requestDriveAccess(action){
+  if(driveUnlocked){action();return;}
+  pendingDriveAction=action;
+  const modal=document.getElementById('passwordModal');
+  const input=document.getElementById('drivePasswordInput');
+  document.getElementById('passwordError').classList.remove('show');
+  input.value='';
+  modal.classList.add('show');
+  setTimeout(()=>input.focus(),80);
+}
+function requestDrivePage(){requestDriveAccess(()=>showPageUnlocked('drive'))}
+function closePasswordModal(){
+  document.getElementById('passwordModal').classList.remove('show');
+  pendingDriveAction=null;
+}
+function submitDrivePassword(){
+  const input=document.getElementById('drivePasswordInput');
+  if(input.value===DRIVE_PASSWORD){
+    driveUnlocked=true;
+    document.getElementById('passwordModal').classList.remove('show');
+    document.getElementById('passwordError').classList.remove('show');
+    const action=pendingDriveAction; pendingDriveAction=null;
+    if(action)action();
+  }else{
+    document.getElementById('passwordError').classList.add('show');
+    input.select();
+  }
+}
+document.getElementById('passwordSubmit').onclick=submitDrivePassword;
+document.getElementById('passwordCancel').onclick=closePasswordModal;
+document.getElementById('drivePasswordInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitDrivePassword();if(e.key==='Escape')closePasswordModal()});
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>b.dataset.page==='drive'?requestDrivePage():showPageUnlocked(b.dataset.page));
 function toggleTheme(){document.body.classList.toggle('light');localStorage.setItem('theme',document.body.classList.contains('light')?'light':'dark')}
 document.getElementById('themeBtn').onclick=toggleTheme;if(localStorage.getItem('theme')==='light')document.body.classList.add('light');
 function init(){const cc=document.getElementById('classChoices'),dc=document.getElementById('driveClass'),dl=document.getElementById('driveLesson');classes.forEach(c=>{const n=c.split('_')[0];cc.insertAdjacentHTML('beforeend',`<button class="choice" onclick="selectClass('${c}',this)"><span class="num">${n}</span><br>${n}. Sınıf</button>`);dc.insertAdjacentHTML('beforeend',`<option value="${c}">${n}. Sınıf</option>`)});lessons.forEach(l=>dl.insertAdjacentHTML('beforeend',`<option value="${l}">${lessonLabel(l)}</option>`))}
 function selectClass(c,el){currentClass=c;document.querySelectorAll('#classChoices .choice').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');document.getElementById('lessonPanel').style.display='block';document.getElementById('statClass').textContent=c.split('_')[0]+'. Sınıf';const box=document.getElementById('lessonChoices');box.innerHTML='';lessons.forEach(l=>box.insertAdjacentHTML('beforeend',`<div class="lesson"><h3>${lessonLabel(l)}</h3><div class="lesson-actions"><button class="primary" onclick="upload('${l}')">PDF Yükle</button><button class="ghost" onclick="openFiles('${l}')">Dosyalar</button></div><div class="files" id="inline-${l}"></div></div>`));}
-function addHistory(type,file,cls,lesson){history.unshift({type,file,cls,lesson,time:new Date()});history=history.slice(0,30);renderHistory();document.getElementById('statAction').textContent=type;}
-function renderHistory(){const html=history.length?history.map(h=>`<div class="file-row"><div><div class="file-name">${h.type==='Yüklendi'?'⬆':'⬇'} ${escapeHtml(h.file)}</div><div class="file-meta">${h.cls.split('_')[0]}. Sınıf • ${lessonLabel(h.lesson)} • ${h.time.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}</div></div><span class="muted">${h.type}</span></div>`).join(''):'<div class="empty">Henüz işlem yok.</div>';document.getElementById('historyList').innerHTML=html;document.getElementById('recentHome').innerHTML=html;}
-async function upload(lesson){
-currentLesson=lesson;
-document.getElementById('statLesson').textContent=lessonLabel(lesson);
-const input=document.getElementById('pwaPdfInput');
-input.value=''; input.click();
-input.onchange=async()=>{
- const file=input.files[0]; if(!file)return;
- const fd=new FormData();
- fd.append('pdf',file);
- fd.append('sinif',currentClass.split('_')[0]);
- fd.append('ders',lesson);
- showStatus('PDF yükleniyor...');
- const r=await fetch('https://madensoruserver.onrender.com/upload',{method:'POST',body:fd}).then(x=>x.json());
- if(!r.success){showStatus(r.message||'Hata',true);return;}
- showStatus('PDF yüklendi.');
- addHistory('Yüklendi',file.name,currentClass,lesson);
- await loadInline(lesson);
-};
+function showUploadNotice(show,fileName=''){
+  const notice=document.getElementById('uploadNotice');
+  document.getElementById('uploadFileName').textContent=fileName||'Lütfen bekleyin';
+  notice.classList.toggle('show',show);
 }
-async function openFiles(lesson){document.getElementById('driveClass').value=currentClass;document.getElementById('driveLesson').value=lesson;showPage('drive');await loadDrivePage()}
+async function upload(lesson){
+  currentLesson=lesson;
+  document.getElementById('statLesson').textContent=lessonLabel(lesson);
+  const input=document.getElementById('pwaPdfInput');
+  input.value=''; input.click();
+  input.onchange=async()=>{
+    const file=input.files[0]; if(!file)return;
+    const fd=new FormData();
+    fd.append('pdf',file);
+    fd.append('sinif',currentClass.split('_')[0]);
+    fd.append('ders',lesson);
+    showUploadNotice(true,file.name);
+    try{
+      const r=await fetch('https://madensoruserver.onrender.com/upload',{method:'POST',body:fd}).then(x=>x.json());
+      if(!r.success){showStatus(r.message||'Yükleme sırasında hata oluştu.',true);return;}
+      showStatus('PDF başarıyla yüklendi.');
+      await loadInline(lesson);
+    }catch(err){
+      showStatus('PDF yüklenemedi. Bağlantıyı kontrol edin.',true);
+    }finally{
+      showUploadNotice(false);
+    }
+  };
+}
+async function openFiles(lesson){
+  requestDriveAccess(async()=>{
+    document.getElementById('driveClass').value=currentClass;
+    document.getElementById('driveLesson').value=lesson;
+    showPageUnlocked('drive');
+    await loadDrivePage();
+  });
+}
 async function loadInline(lesson){const box=document.getElementById('inline-'+lesson);if(!box)return;box.innerHTML='<div class="muted">Yükleniyor...</div>';const r=await fetch(`https://madensoruserver.onrender.com/files/${currentClass.split('_')[0]}/${lesson}`).then(x=>x.json());if(!r.success){box.innerHTML='<div class="muted">Hata: '+escapeHtml(r.error)+'</div>';return}box.innerHTML=r.files.length?r.files.slice(0,4).map(f=>fileRow(f,currentClass,lesson)).join(''):'<div class="muted">Henüz PDF yok.</div>';bindDownloadButtons(box,currentClass,lesson)}
 async function loadDrivePage(){const cls=document.getElementById('driveClass').value,lesson=document.getElementById('driveLesson').value,box=document.getElementById('driveFiles');if(!cls||!lesson){showStatus('Önce sınıf ve ders seçin.',true);return}currentClass=cls;currentLesson=lesson;document.getElementById('statClass').textContent=cls.split('_')[0]+'. Sınıf';document.getElementById('statLesson').textContent=lessonLabel(lesson);box.innerHTML='<div class="empty">Drive dosyaları yükleniyor...</div>';const r=await fetch(`https://madensoruserver.onrender.com/files/${cls.split('_')[0]}/${lesson}`).then(x=>x.json());if(!r.success){box.innerHTML='<div class="empty">Hata: '+escapeHtml(r.error)+'</div>';return}driveCache=r.files||[];renderDriveFiles()}
 function normalizeText(v){return String(v||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i')}
@@ -150,11 +305,13 @@ function findInlineFile(btn){const name=btn.closest('.file-row').querySelector('
 async function download(file,cls,lesson){
 if(!file)return;
 window.open('https://madensoruserver.onrender.com/download/'+file.id,'_blank');
-addHistory('İndirildi',file.name,cls,lesson);
 }
 function formatBytes(n){if(!n)return '';const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?1:0)+' '+u[i]}
 function escapeHtml(s=''){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 init();
+window.addEventListener('load',()=>{
+  setTimeout(()=>document.getElementById('splashScreen').classList.add('hide'),6000);
+});
 </script>
 </body>
 </html>
