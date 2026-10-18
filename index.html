@@ -116,6 +116,17 @@ body.light{--bg:#edf3fb;--panel:#fff;--panel2:#fff;--line:#d7e2f0;--text:#12213a
 .upload-notice small{display:block;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* WhatsApp'tan paylaşılan PDF penceresi */
+.share-files{display:grid;gap:8px;margin:0 0 14px;max-height:180px;overflow:auto}
+.share-file{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#061326;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.share-file small{color:var(--muted);margin-left:6px}
+.share-selects{display:grid;gap:10px}
+.share-selects select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#061326;color:white;outline:none}
+.share-selects select:focus{border-color:#2c86ff}
+.primary:disabled{opacity:.6;cursor:wait}
+.upload-notice{z-index:9500}.status{z-index:9600}
+.howto{margin:12px 0 0;padding-left:20px;color:var(--muted);line-height:1.7}
+
 .quick{grid-template-columns:repeat(3,1fr)}
 .stats{grid-template-columns:repeat(3,1fr)}
 @media(max-width:760px){
@@ -157,6 +168,24 @@ body.light{--bg:#edf3fb;--panel:#fff;--panel2:#fff;--line:#d7e2f0;--text:#12213a
   </div>
 </div>
 
+<div class="modal-backdrop" id="shareModal">
+  <div class="password-card">
+    <div class="password-icon">📲</div>
+    <h2>Paylaşılan PDF</h2>
+    <p>Gelen dosyayı hangi sınıf ve derse yükleyelim?</p>
+    <div class="share-files" id="shareFileList"></div>
+    <div class="share-selects">
+      <select id="shareClass"><option value="">Sınıf seçin</option></select>
+      <select id="shareLesson"><option value="">Ders seçin</option></select>
+    </div>
+    <div class="password-error" id="shareError"></div>
+    <div class="password-actions">
+      <button class="ghost" id="shareCancel">Vazgeç</button>
+      <button class="primary" id="shareSubmit">⬆ Yükle</button>
+    </div>
+  </div>
+</div>
+
 <div class="upload-notice" id="uploadNotice">
   <div class="upload-spinner"></div>
   <div><b>PDF yükleniyor...</b><small id="uploadFileName">Lütfen bekleyin</small></div>
@@ -193,7 +222,7 @@ body.light{--bg:#edf3fb;--panel:#fff;--panel2:#fff;--line:#d7e2f0;--text:#12213a
   <section class="page" id="page-drive"><div class="hero"><h1>Drive'daki Dosyalar</h1><p>Sınıf ve ders seçerek Google Drive arşivini görüntüleyin.</p></div><div class="panel"><div class="controls"><select id="driveClass"><option value="">Sınıf seçin</option></select><select id="driveLesson"><option value="">Ders seçin</option></select><button class="primary" onclick="loadDrivePage()">Dosyaları Listele</button><input id="searchBox" placeholder="Dosya ara..." oninput="filterDriveFiles()"></div><div id="driveFiles" class="empty">Listelemek için sınıf ve ders seçin.</div></div></section>
 
   <section class="page" id="page-settings"><div class="hero"><h1>Ayarlar</h1><p>Görünümü kişiselleştirin.</p></div><div class="panel"><h2>Görünüm</h2><p class="muted">Koyu ve açık tema arasında geçiş yapabilirsiniz.</p><button class="primary" onclick="toggleTheme()">Temayı Değiştir</button></div></section>
-  <section class="page" id="page-about"><div class="hero"><h1>Hakkında</h1><p>MADEN.SORU.ARŞİVİ</p></div><div class="panel"><h2>Sürüm 1.0.0</h2><p class="muted">PDF soru arşivlerini sınıf ve ders bazında Google Drive üzerinde düzenlemek, listelemek ve indirmek için hazırlanmıştır.</p></div></section>
+  <section class="page" id="page-about"><div class="hero"><h1>Hakkında</h1><p>MADEN.SORU.ARŞİVİ</p></div><div class="panel"><h2>Sürüm 1.0.0</h2><p class="muted">PDF soru arşivlerini sınıf ve ders bazında Google Drive üzerinde düzenlemek, listelemek ve indirmek için hazırlanmıştır.</p></div><div class="panel"><h2>📲 WhatsApp'tan PDF Gönderme (Android)</h2><ol class="howto"><li>Siteyi Chrome'da açın, menüden <b>"Ana ekrana ekle"</b> / <b>"Uygulamayı yükle"</b> deyin.</li><li>WhatsApp'ta PDF'e basılı tutun, <b>Paylaş</b> simgesine dokunun.</li><li>Listeden <b>MADEN ARŞİVİ</b>'ni seçin.</li><li>Açılan pencerede sınıf ve dersi seçip <b>Yükle</b>'ye basın.</li></ol><p class="muted">iPhone'da: WhatsApp'ta PDF'i açın → Paylaş → "Dosyalar'a Kaydet", sonra buradan normal şekilde yükleyin.</p></div></section>
 </main>
 </div>
 <div class="status" id="status"></div><input id="pwaPdfInput" type="file" accept="application/pdf" style="display:none">
@@ -262,13 +291,9 @@ async function upload(lesson){
   input.value=''; input.click();
   input.onchange=async()=>{
     const file=input.files[0]; if(!file)return;
-    const fd=new FormData();
-    fd.append('pdf',file);
-    fd.append('sinif',currentClass.split('_')[0]);
-    fd.append('ders',lesson);
     showUploadNotice(true,file.name);
     try{
-      const r=await fetch('https://madensoruserver.onrender.com/upload',{method:'POST',body:fd}).then(x=>x.json());
+      const r=await sendPdf(file,currentClass,lesson);
       if(!r.success){showStatus(r.message||'Yükleme sırasında hata oluştu.',true);return;}
       showStatus('PDF başarıyla yüklendi.');
       await loadInline(lesson);
@@ -308,7 +333,94 @@ window.open('https://madensoruserver.onrender.com/download/'+file.id,'_blank');
 }
 function formatBytes(n){if(!n)return '';const u=['B','KB','MB','GB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(i?1:0)+' '+u[i]}
 function escapeHtml(s=''){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+async function sendPdf(file,cls,lesson){
+  const fd=new FormData();
+  fd.append('pdf',file);
+  fd.append('sinif',cls.split('_')[0]);
+  fd.append('ders',lesson);
+  return fetch('https://madensoruserver.onrender.com/upload',{method:'POST',body:fd}).then(x=>x.json());
+}
+
+/* ---- WhatsApp / Paylaş menüsünden gelen PDF'ler ---- */
+const SHARE_CACHE='maden-paylasilan';
+let sharedFiles=[];
+function isPdf(f){return /pdf/i.test(f.type)||/\.pdf$/i.test(f.name)}
+async function readSharedFiles(){
+  if(!('caches' in window))return [];
+  const cache=await caches.open(SHARE_CACHE);
+  const out=[];
+  for(const req of await cache.keys()){
+    const res=await cache.match(req); if(!res)continue;
+    const blob=await res.blob();
+    let name='paylasilan.pdf';
+    try{name=decodeURIComponent(res.headers.get('X-File-Name')||name)}catch(e){}
+    out.push(new File([blob],name,{type:blob.type||'application/pdf'}));
+  }
+  return out;
+}
+async function clearSharedFiles(){if('caches' in window)await caches.delete(SHARE_CACHE)}
+function renderSharedList(){
+  document.getElementById('shareFileList').innerHTML=sharedFiles.map(f=>`<div class="share-file">📄 ${escapeHtml(f.name)}<small>${formatBytes(f.size)}</small></div>`).join('');
+}
+function shareError(msg){const e=document.getElementById('shareError');e.textContent=msg||'';e.classList.toggle('show',!!msg)}
+async function handleSharedFiles(state){
+  if(state==='hata'){showStatus('Paylaşılan dosya alınamadı. Tekrar deneyin.',true);return}
+  const files=(await readSharedFiles()).filter(isPdf);
+  if(!files.length){await clearSharedFiles();showStatus('Paylaşılan dosyalarda PDF bulunamadı.',true);return}
+  sharedFiles=files;
+  renderSharedList();
+  shareError('');
+  const sc=document.getElementById('shareClass'),sl=document.getElementById('shareLesson');
+  try{sc.value=localStorage.getItem('shareClass')||'';sl.value=localStorage.getItem('shareLesson')||''}catch(e){}
+  document.getElementById('shareModal').classList.add('show');
+}
+async function submitShared(){
+  const cls=document.getElementById('shareClass').value,lesson=document.getElementById('shareLesson').value;
+  if(!cls||!lesson){shareError('Önce sınıf ve ders seçin.');return}
+  try{localStorage.setItem('shareClass',cls);localStorage.setItem('shareLesson',lesson)}catch(e){}
+  const btn=document.getElementById('shareSubmit');
+  btn.disabled=true;shareError('');
+  const failed=[];let ok=0;
+  for(let i=0;i<sharedFiles.length;i++){
+    const f=sharedFiles[i];
+    btn.textContent=sharedFiles.length>1?`Yükleniyor ${i+1}/${sharedFiles.length}...`:'Yükleniyor...';
+    try{const r=await sendPdf(f,cls,lesson);if(r&&r.success)ok++;else failed.push(f)}
+    catch(e){failed.push(f)}
+  }
+  btn.disabled=false;btn.textContent='⬆ Yükle';
+  currentClass=cls;currentLesson=lesson;
+  document.getElementById('statClass').textContent=cls.split('_')[0]+'. Sınıf';
+  document.getElementById('statLesson').textContent=lessonLabel(lesson);
+  if(!failed.length){
+    await clearSharedFiles();sharedFiles=[];
+    document.getElementById('shareModal').classList.remove('show');
+    showStatus(ok>1?`${ok} PDF başarıyla yüklendi.`:'PDF başarıyla yüklendi.');
+  }else{
+    sharedFiles=failed;renderSharedList();
+    shareError(`${failed.length} dosya yüklenemedi. Bağlantıyı kontrol edip tekrar deneyin.`);
+  }
+}
+async function cancelShared(){
+  await clearSharedFiles();sharedFiles=[];
+  document.getElementById('shareModal').classList.remove('show');
+}
+document.getElementById('shareSubmit').onclick=submitShared;
+document.getElementById('shareCancel').onclick=cancelShared;
+
 init();
+(function(){
+  const sc=document.getElementById('shareClass'),sl=document.getElementById('shareLesson');
+  classes.forEach(c=>sc.insertAdjacentHTML('beforeend',`<option value="${c}">${c.split('_')[0]}. Sınıf</option>`));
+  lessons.forEach(l=>sl.insertAdjacentHTML('beforeend',`<option value="${l}">${lessonLabel(l)}</option>`));
+})();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js').catch(()=>{})}
+(function(){
+  const p=new URLSearchParams(location.search);
+  if(!p.has('paylasim'))return;
+  document.getElementById('splashScreen').classList.add('hide');
+  history.replaceState(null,'',location.pathname);
+  handleSharedFiles(p.get('paylasim'));
+})();
 window.addEventListener('load',()=>{
   setTimeout(()=>document.getElementById('splashScreen').classList.add('hide'),6000);
 });
