@@ -126,6 +126,12 @@ body.light{--bg:#edf3fb;--panel:#fff;--panel2:#fff;--line:#d7e2f0;--text:#12213a
 .primary:disabled{opacity:.6;cursor:wait}
 .upload-notice{z-index:9500}.status{z-index:9600}
 .howto{margin:12px 0 0;padding-left:20px;color:var(--muted);line-height:1.7}
+.upload-btns{display:flex;gap:10px;flex-wrap:wrap;position:relative;z-index:1}
+.wa-btn{display:inline-flex;align-items:center;border:1px solid #1fae5b;background:linear-gradient(180deg,#25d366,#128c4a);color:white;border-radius:9px;padding:11px 18px;font-weight:700;text-decoration:none;cursor:pointer}
+.wa-btn:hover{filter:brightness(1.1)}
+.wa-btn[hidden],.wa-hint[hidden]{display:none}
+.feature p.wa-hint{margin:12px 0 0;font-size:13px}
+@media(max-width:760px){.upload-btns>*{flex:1 1 100%;justify-content:center;text-align:center}}
 
 .quick{grid-template-columns:repeat(3,1fr)}
 .stats{grid-template-columns:repeat(3,1fr)}
@@ -209,7 +215,7 @@ body.light{--bg:#edf3fb;--panel:#fff;--panel2:#fff;--line:#d7e2f0;--text:#12213a
   <section class="page active" id="page-home">
     <div class="hero"><h1>Hoş geldiniz!</h1><p>Sorularınızı arşivleyin, kolayca erişin.</p></div>
     <div class="feature-grid">
-      <div class="feature"><h2>PDF Yükle</h2><p>Yeni soru PDF'inizi sınıf ve ders seçerek Drive'a yükleyin.</p><button class="primary" onclick="showPage('classes')">⬆ PDF Seç ve Yükle</button><div class="big">📤</div></div>
+      <div class="feature"><h2>PDF Yükle</h2><p>Yeni soru PDF'inizi sınıf ve ders seçerek Drive'a yükleyin.</p><div class="upload-btns"><button class="primary" onclick="showPage('classes')">⬆ PDF Seç ve Yükle</button><a class="wa-btn" id="waBtn" href="#" target="_blank" rel="noopener" hidden>💬 WhatsApp'a Gönder</a></div><p class="wa-hint" id="waHint" hidden>WhatsApp'ta PDF'i bu numaraya atın, bot sınıf ve dersi sorup Drive'a yükler.</p><div class="big">📤</div></div>
       <div class="feature"><h2>Drive'daki Dosyalar</h2><p>Google Drive'daki soru arşivinize göz atın ve indirin.</p><button class="primary" onclick="requestDrivePage()">Dosyaları Görüntüle →</button><div class="big">📁</div></div>
     </div>
     <h2 class="section-title">Hızlı İşlemler</h2>
@@ -413,6 +419,14 @@ init();
   classes.forEach(c=>sc.insertAdjacentHTML('beforeend',`<option value="${c}">${c.split('_')[0]}. Sınıf</option>`));
   lessons.forEach(l=>sl.insertAdjacentHTML('beforeend',`<option value="${l}">${lessonLabel(l)}</option>`));
 })();
+// WhatsApp botu sunucuda açıksa butonu göster
+fetch('https://madensoruserver.onrender.com/whatsapp/info').then(r=>r.json()).then(info=>{
+  if(!info||!info.enabled||!info.number)return;
+  const a=document.getElementById('waBtn');
+  a.href='https://wa.me/'+encodeURIComponent(info.number)+'?text='+encodeURIComponent('Merhaba, PDF göndereceğim.');
+  a.hidden=false;
+  document.getElementById('waHint').hidden=false;
+}).catch(()=>{});
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./service-worker.js').catch(()=>{})}
 (function(){
   const p=new URLSearchParams(location.search);
